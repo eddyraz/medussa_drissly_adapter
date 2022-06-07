@@ -1,0 +1,27 @@
+(undo-tree-save-format-version . 1)
+"3496b02625c60dc834243cd957436a05cb3bb2cd"
+[nil nil nil nil (25247 49727 705961 614000) 0 nil]
+([nil nil ((#("@moduledoc \"\"\"
+  Documentation for `MedusaDrisslyAdapter`.
+  \"\"\"
+
+  @doc \"\"\"
+  Hello world.
+
+  ## Examples
+
+      iex> MedusaDrisslyAdapter.hello()
+      :world
+
+  \"\"\"
+  def hello do
+    :world
+  end
+end
+" 0 10 (fontified t face elixir-attribute-face) 10 11 (fontified t) 11 12 (fontified t syntax-table (15) face font-lock-doc-face) 12 63 (fontified t face font-lock-doc-face) 63 64 (fontified t syntax-table (15) face font-lock-doc-face) 64 68 (fontified t) 68 72 (fontified t face elixir-attribute-face) 72 73 (fontified t) 73 74 (fontified t syntax-table (15) face font-lock-doc-face) 74 166 (fontified t face font-lock-doc-face) 166 167 (fontified t syntax-table (15) face font-lock-doc-face) 167 170 (fontified t) 170 173 (fontified t face font-lock-keyword-face) 173 174 (fontified t) 174 179 (fontified t face font-lock-function-name-face) 179 180 (fontified t) 180 182 (fontified t face font-lock-keyword-face) 182 187 (fontified t) 187 193 (fontified t face elixir-atom-face) 193 196 (fontified t) 196 199 (fontified t face font-lock-keyword-face) 199 200 (fontified t) 200 203 (fontified t face font-lock-keyword-face) 203 204 (fontified t)) . -37) (undo-tree-id3 . -204) (undo-tree-id4 . -204) (undo-tree-id5 . -204) (undo-tree-id6 . -204) 241 (t 25247 49469 194440 991000)) nil (25247 49727 705958 58000) 0 nil])
+([nil nil ((#("defmodule MedusaDrisslyAdapter do" 0 9 (fontified t face font-lock-keyword-face) 9 10 (fontified t) 10 30 (fontified t face font-lock-type-face) 30 31 (fontified t) 31 33 (fontified t face font-lock-keyword-face)) . 1)) nil (25247 49727 705947 659000) 0 nil])
+([nil nil ((1 . 7478) (#("
+  " 0 1 (fontified t) 1 3 (fontified t)) . 1) (undo-tree-id1 . -3) (undo-tree-id2 . -3)) nil (25247 49727 705944 132000) 0 nil])
+([nil nil ((1 . 2) (t 25247 49658 695476 358000)) nil (25247 49727 705935 686000) 0 nil])
+([nil current ((#("g" 0 1 (fontified t)) . -1) (undo-tree-id0 . -1) 2) nil (25247 49727 705926 459000) 0 nil])
+nil
