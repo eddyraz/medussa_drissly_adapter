@@ -3,7 +3,7 @@ defmodule MedusaDrisslyAdapter.MixProject do
 
   def project do
     [
-      app: :medusa_drissly_adapter,
+      app: :medusa,
       version: "0.1.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
@@ -14,6 +14,7 @@ defmodule MedusaDrisslyAdapter.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      
       extra_applications: [:logger],
       mod: {MedusaDrisslyAdapter.Application, []}
     ]

@@ -59,11 +59,11 @@ defmodule Medusa.DrisslyAdapter do
 
     url = get_url(ops)
 
-    phone_num = options[:num]
-    tos = options[:tos]
-    spa = options[:spa]
-    addition_text = options[:add_text]
-    ref = options[:ref]
+    phone_num = options[:phone]
+    tos = options[:id_product]
+    spa = options[:amount]
+    addition_text = options[:aditional]
+    ref = options[:reference]
     folio = options[:folio]
 
     send_request(
