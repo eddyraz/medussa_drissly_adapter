@@ -116,7 +116,6 @@ defmodule Medusa.DrisslyAdapter do
       |> Jason.encode()
       |> elem(1)
 
-    
     {:ok, response} = Tesla.post(url, body, headers: get_headers())
 
     # server_response_body = response.body |> Jason.encode
@@ -136,12 +135,11 @@ defmodule Medusa.DrisslyAdapter do
          folio
        ) do
     case ops do
-
-      "login" ->
-        ''	
-	
       "catalogo_productos" ->
-        ''
+        %{
+          email: get_user_name(),
+          password: get_password()
+        }
 
       "catalogo_servicios" ->
         ''
@@ -181,46 +179,65 @@ defmodule Medusa.DrisslyAdapter do
   end
 
   defp parse_response(raw_response) do
-     response = Jaxon.decode(elem(raw_response,1).body) |> elem(1)
+    response = Jaxon.decode(elem(raw_response, 1).body) |> elem(1)
 
-#     status_code = get_status_code(response)
-#     message = get_message(response)
-#     error_message = get_error(response)
+    #     status_code = get_status_code(response)
+    #     message = get_message(response)
+    #     error_message = get_error(response)
 
-#        case status_code do
-#                400 ->
-#                Logger.error("#{ops_id}, #{get_time()} Drissly Response: #{response.body}")
- #               {:error, "Drissly: Bad Request"}
-#              401 ->
-#                Logger.error("#{get_time()} Drissly Response: #{response.body}")
-#              403 ->
-#                log :error, ops_id, "#{get_time()} Drissly Response: #{response.body}"
-#                {:error, "Drissly: Access Forbidden"}
-#              500 ->
-#                log :error, ops_id, "#{get_time()} Drissly Response: #{response.body}"
-#                {:error, "Drissly: Internal Server Error"}
-    
-#              502 ->
-#     	    Logger.error("#{ops_id} #{get_time()} Drissly Response: #{response.body} error, #{error_me#ssage}")
-#              _ ->
- #           Logger.error("#{error_message}, #{ops_id}, #{get_time()} Drissly Response: #{response.body}")
-                
-#    end
-end 
-	
-  
+    #        case status_code do
+    #                400 ->
+    #                Logger.error("#{ops_id}, #{get_time()} Drissly Response: #{response.body}")
+    #               {:error, "Drissly: Bad Request"}
+    #              401 ->
+    #                Logger.error("#{get_time()} Drissly Response: #{response.body}")
+    #              403 ->
+    #                log :error, ops_id, "#{get_time()} Drissly Response: #{response.body}"
+    #                {:error, "Drissly: Access Forbidden"}
+    #              500 ->
+    #                log :error, ops_id, "#{get_time()} Drissly Response: #{response.body}"
+    #                {:error, "Drissly: Internal Server Error"}
+
+    #              502 ->
+    #     	    Logger.error("#{ops_id} #{get_time()} Drissly Response: #{response.body} error, #{error_me#ssage}")
+    #              _ ->
+    #           Logger.error("#{error_message}, #{ops_id}, #{get_time()} Drissly Response: #{response.body}")
+
+    #    end
+  end
 
   defp get_headers() do
     [
       "User-Agent": "Miio",
       "Content-Type": @config[:headers][:auth][:content_type],
-      Authorization: "Bearer " <> @config[:headers][:auth][:token]
+      Authorization: "Bearer " <> get_bearer_token()
     ]
-    end
-    
+  end
 
-  defp get_bearer_token(:user_cred) do
-    user_token = :user_cred
+  defp get_login_headers() do
+    [
+      "User-Agent": "Miio",
+      "Content-Type": @config[:headers][:auth][:content_type]
+    ]
+  end
+
+  defp get_bearer_token() do
+    body =
+      %{
+        email: get_user_name(),
+        password: get_password()
+      }
+      |> Jason.encode()
+      |> elem(1)
+
+    url = @config[:endpoints][:base] <> @config[:endpoints][:login]
+    {:ok, response} = Tesla.post(url, body, headers: get_login_headers)
+
+    usr_token =
+      (response.body
+       |> Jason.decode()
+       |> elem(1))["token"]
+    
   end
 
   def get_attemps(class) do
