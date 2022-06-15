@@ -17,4 +17,6 @@ defmodule MedusaDrisslyAdapter.Application do
     opts = [strategy: :one_for_one, name: MedusaDrisslyAdapter.Supervisor]
     Supervisor.start_link(children, opts)
   end
+
+
 end
