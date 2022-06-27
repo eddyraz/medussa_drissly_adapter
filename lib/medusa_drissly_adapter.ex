@@ -103,11 +103,11 @@ defmodule Medusa.DrisslyAdapter do
     @config[:endpoints][:base] <> @config[:endpoints][String.to_atom(class)]
   end
 
-  def get_user_name() do
+  defp get_user_name() do
     @config[:headers][:login][:email]
   end
 
-  def get_password() do
+  defp get_password() do
     @config[:headers][:login][:password]
   end
 
@@ -123,6 +123,8 @@ defmodule Medusa.DrisslyAdapter do
 
     # log(:info, payment_id, "#{get_time()} Drissly Request: #{log}")
 
+    initial_log(payment_id,action)
+    
     body =
       get_body(
         action,
@@ -150,7 +152,6 @@ defmodule Medusa.DrisslyAdapter do
     end
   end
 
-  # top = Type of service, calling_station = phone_number
   defp get_body(
          ops,
          calling_station,
@@ -163,11 +164,6 @@ defmodule Medusa.DrisslyAdapter do
     case ops do
       "catalogo_productos" ->
         ''
-
-      # %{
-      #   email: get_user_name(),
-      #   password: get_password()
-      # }
 
       "catalogo_servicios" ->
         ''
@@ -201,7 +197,7 @@ defmodule Medusa.DrisslyAdapter do
     end
   end
 
-  def get_time() do
+  defp get_time() do
     # Timex.format!(Timex.now("America/Mexico_City"), "%Y-%m-%d %H:%M:%S.%L", :strftime)
     :hello
   end
@@ -231,6 +227,10 @@ defmodule Medusa.DrisslyAdapter do
         response
     end
   end
+
+  defp persist_log_message(payment_id,msg) do
+    IO.binwrite(Application.get_env(:medusa, :"#{payment_id}"), "#{msg}\n")
+    end
 
   defp get_headers() do
     [
@@ -262,25 +262,12 @@ defmodule Medusa.DrisslyAdapter do
       |> elem(1)
 
     url = @config[:endpoints][:base] <> @config[:endpoints][:login]
-    {:ok, response} = Tesla.post(url, body, headers: get_login_headers)
+    {:ok, response} = Tesla.post(url, body, headers: get_login_headers, recv_timeout: 75_000)
 
     usr_token =
       (response.body
        |> Jason.decode()
        |> elem(1))["token"]
-  end
-
-  def get_attemps(class) do
-    case class do
-      "Servicios" ->
-        @attempts_services_timeout
-
-      "Recarga tae" ->
-        @attempts_tae
-
-      _ ->
-        0
-    end
   end
 
   defp get_status_code(res) do
@@ -290,11 +277,11 @@ defmodule Medusa.DrisslyAdapter do
   defp parse_status_code(scode) do
   end
 
-  def get_message(res) do
+  defp get_message(res) do
     error_message = res["message"]
   end
 
-  def get_error(res) do
+  defp get_error(res) do
     error_message = res["error"]
   end
 
@@ -305,6 +292,38 @@ defmodule Medusa.DrisslyAdapter do
       false
     end
   end
+
+
+
+
+  #Para la persistencia de los logs en ficheros
+  defp initial_log(payment_id, class) do
+    {:ok, file} = File.open("logs/#{get_path(class)}/#{payment_id}.log", [:append])
+    Application.put_env(:medusa, :"#{payment_id}", file, persistent: true)
+  end
+
+  defp close_log(payment_id, _result) do
+    File.close(Application.get_env(:medusa, :"#{payment_id}"))
+    _result
+  end
+
+  defp get_path(class) do
+    @onfig[:log_path][get_type(class)]
+  end
+
+  def get_type(class) do
+    case class do
+      "pago_servicios" ->
+        :drissly_services
+      "recarga" ->
+        :drissly_tae
+      _ ->
+        :nil
+    end
+  end
+
+  
+  
 end
 
 # Catalogo de productos
