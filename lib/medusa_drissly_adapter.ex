@@ -16,30 +16,41 @@ defmodule Medusa.DrisslyAdapter do
         de entrada make_request/2 la cual toma dos parametros
         el primero es el tipo de operacion
         (uno por endpoint a partir de catalogo_productos)
-        y el segundo parametro es una tupla de 6 valores en la que se setean los
+        y el segundo parametro es una named list de hasta 6 valores en la que se escpecifican solo los
         valores correspondientes en dependencia del tipo de operacion
-        y los demas se dejan con el valor nil. los datos de autenticacion
-        se ponen por defecto en el body cargados desde la configuracion.
+        . los datos de autenticacion se ponen por defecto en el body cargados desde la configuracion.
 
-        los valores de la tupla son {
-                                     numero_telefonico,
-                                     tipo_de_servicio_o_producto,
-                                     cantidad_a_recargar,
-                                     texto_adicional,
-                                     numero_referencia,
-                                     folio
+        los valores de la named list son {
+                                     phone: numero_telefonico,
+                                     id_product: tipo_de_servicio_o_producto,
+                                     amount: cantidad_a_recargar,
+                                     aditional: texto_adicional,
+                                     reference: numero_referencia,
+                                     folio: no_de_folio
                                      }
 
-        Nota: El folio solo se necesita para la consulta de una transaccion previa.
+   
+        Ejemplo para el catalogo de productos o servicios  solo necesitamos el tipo de operacion, y nada mas, por lo que quedaria asi.
+        Medusa.DrisslyAdapter.make_request("catalogo_servicios",[])
+      
+        o
+   
+        Medusa.DrisslyAdapter.make_request("catalogo_productos",[])
 
-        Ejemplo para el catalogo de productos solo necesitamos el tipo de operacion[19~], y nada mas, por lo que quedaria asi.
-        Medusa.DrisslyAdapter.make_request("catalogo_servicios",{nil,nil,nil,nil,nil,nil})
+        Para consulta de saldo
+        Medusa.DrisslyAdapter.make_request("consulta_saldo",[])
 
-        Para la recarga necesitamos el tipo de operacion, el numero
+        Para la recarga de tae necesitamos el tipo de operacion y el numero de telefono por loq ue quedara asi
+        Medusa.DrisslyAdapter.make_request("recarga",[phone: "5512345678"])
+      
+        Para pago de servicio
+        Medusa.DrisslyAdapter.make_request("pago_servicio",[phone: "5512365765", id_product: 218, amount: 100, aditional: "TEST", reference: "10101010101010102"])
 
-
-
+        Para consulta de transaccion
+        Medusa.DrisslyAdapter.make_request("consulta_transaccion",[folio: 1687])   
+        
   """
+
   import Record
   require EEx
   use Timex
@@ -67,7 +78,11 @@ defmodule Medusa.DrisslyAdapter do
     ref = options[:reference]
     folio = options[:folio]
 
-    if phone_has_10_digits?(phone_num) or ops != "recarga" or ops != "pago_servicio" do
+    if phone_has_10_digits?(phone_num) or
+         ops == "catalogo_productos" or
+         ops == "consulta_saldo" or
+         ops == "catalogo_servicios" or
+         ops == "consulta_transaccion" do
       send_request(
         ops,
         url,
@@ -121,12 +136,18 @@ defmodule Medusa.DrisslyAdapter do
       |> Jason.encode()
       |> elem(1)
 
-    {:ok, response} = Tesla.post(url, body, headers: get_headers())
+    {:ok, response} =
+      Tesla.post(url, body, headers: get_headers(), recv_timeout: get_timeout(action))
+  end
 
-    # server_response_body = response.body |> Jason.encode
-    # Logger.info("Drissly Response: #{server_response_body}")
+  defp get_timeout(toop) do
+    cond do
+      toop == "recarga" ->
+        @drissly_timeout_tae
 
-    #    parse_response(payment_id, response)
+      true ->
+        @drissly_timeout_servicios_supl
+    end
   end
 
   # top = Type of service, calling_station = phone_number
@@ -141,10 +162,12 @@ defmodule Medusa.DrisslyAdapter do
        ) do
     case ops do
       "catalogo_productos" ->
-        %{
-          email: get_user_name(),
-          password: get_password()
-        }
+        ''
+
+      # %{
+      #   email: get_user_name(),
+      #   password: get_password()
+      # }
 
       "catalogo_servicios" ->
         ''
@@ -158,7 +181,7 @@ defmodule Medusa.DrisslyAdapter do
         }
 
       "consulta_saldo" ->
-        ''
+        %{email: get_user_name(), password: get_password()}
 
       "pago_servicio" ->
         %{
@@ -189,20 +212,15 @@ defmodule Medusa.DrisslyAdapter do
     message = get_message(response)
     error_message = get_error(response)
 
-
     cond do
       status_code == "200" ->
         response
-	
+
       status_code == "400" ->
         Logger.error("Drissly Response: Codigo de error: #{status_code} , #{message}")
 
-      Regex.match?(~r/^(40[1|3])/, status_code) -> Logger.error("Drissly Error: Codigo de error: #{status_code}, #{response}")	
-#      status_code == "401" ->
-#        Logger.error("Drissly Error: Codigo de error: #{status_code}, #{response}")
-
-#      status_code == "403" ->
-#        Logger.error("Drissly Error: Codigo de error: #{status_code}, Access Forbidden")
+      Regex.match?(~r/^(40[1|3])/, status_code) ->
+        Logger.error("Drissly Error: Codigo de error: #{status_code}, #{response}")
 
       Regex.match?(~r/^(50)/, status_code) ->
         Logger.error(
@@ -229,7 +247,12 @@ defmodule Medusa.DrisslyAdapter do
     ]
   end
 
-  defp get_bearer_token() do
+  def build_client(ops) do
+    tkn = get_bearer_token()
+    client = Medusa.TeslaHttp.client(tkn, ops)
+  end
+
+  def get_bearer_token() do
     body =
       %{
         email: get_user_name(),
