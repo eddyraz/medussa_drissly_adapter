@@ -40,7 +40,7 @@ defmodule Medusa.DrisslyAdapter do
         Para consulta de saldo
         Medusa.DrisslyAdapter.make_request("consulta_saldo",[])
 
-        Para la recarga de tae necesitamos el tipo de operacion y el numero de telefono por loq ue quedara asi
+        Para la recarga de tae necesitamos el tipo de operacion y el numero de telefono por lo que quedara asi
         Medusa.DrisslyAdapter.make_request("recarga",[phone: "5512345678"])
       
         Para pago de servicio
@@ -58,14 +58,12 @@ defmodule Medusa.DrisslyAdapter do
   @config Application.get_env(:medusa, :drissly)
 
   @doc """
-      Esta funcion construye la solicitud que se le enviara a la API de Drissly                  recibiendo como parametros el tipo de operacion(),y una lista con parametros opc           ionales como el numero de telefono, el tipo de servicio, la cantidad de dinero             en caso de pago, y el numero de referencia en caso de pago
+      Esta funcion construye la solicitud que se le enviara a la API de Drissly                  recibiendo como parametros el tipo de operacion(),y una lista con parametros opcionales como el numero de telefono, el tipo de servicio, la cantidad de dinero en caso de pago, y el numero de referencia en caso de pago
   """
   def make_request(ops, options) do
     url = get_url(ops)
-
     phone_num = options[:phone]
     tos = options[:id_product]
-
     spa = options[:amount]
     addition_text = options[:aditional]
     ref = options[:reference]
@@ -118,8 +116,7 @@ defmodule Medusa.DrisslyAdapter do
       |> Jason.encode()
       |> elem(1)
 
-    {:ok, _response} =
-      Tesla.post(url, body, headers: get_headers(), recv_timeout: get_timeout(action))
+    Tesla.post(url, body, headers: get_headers(), recv_timeout: get_timeout(action))
   end
 
   defp get_timeout(toop) do
@@ -276,7 +273,6 @@ defmodule Medusa.DrisslyAdapter do
   defp persist_logs(msg, ops_id, request_log, ops) do
     if ops == "recarga" or ops == "pago_servicio" do
       IO.binwrite(Application.get_env(:medusa, :"#{ops_id}"), "#{request_log}\n\n #{msg}\n")
-      
       close_log(ops_id)
       Jason.decode(msg) |> elem(1)
     else
