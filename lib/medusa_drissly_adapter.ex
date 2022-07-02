@@ -52,7 +52,11 @@ defmodule Medusa.DrisslyAdapter do
   """
   require Logger
   use Tesla
+  use GenServer
+  
 
+  
+  
   @drissly_timeout_tae 60
   @drissly_timeout_servicios_supl 75
   @config Application.get_env(:medusa, :drissly)
@@ -60,6 +64,16 @@ defmodule Medusa.DrisslyAdapter do
   @doc """
       Esta funcion construye la solicitud que se le enviara a la API de Drissly                  recibiendo como parametros el tipo de operacion(),y una lista con parametros opcionales como el numero de telefono, el tipo de servicio, la cantidad de dinero en caso de pago, y el numero de referencia en caso de pago
   """
+
+  def start do
+    GenServer.start(__MODULE__, nil)
+  end
+
+  def init(init_arg) do
+    {:ok, init_arg}
+  end
+
+   
   def make_request(ops, options) do
     url = get_url(ops)
     phone_num = options[:phone]
