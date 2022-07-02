@@ -4,9 +4,11 @@ config :tesla, adapter: {Tesla.Adapter.Hackney, [recv_timeout: 60_000]}
 
 config :medusa,
   drissly: %{
+    project_root: File.cwd!, 
+
     log_path: %{
-      drissly_services: "/pago_servicios/",
-      drissly_tae: "/recarga_tae/",
+      drissly_services: "pago_servicios",
+      drissly_tae: "recarga_tae",
       
       
     },
