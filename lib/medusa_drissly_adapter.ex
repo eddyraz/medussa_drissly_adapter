@@ -50,24 +50,17 @@ defmodule Medusa.DrisslyAdapter do
         Medusa.DrisslyAdapter.make_request("consulta_transaccion",[folio: 1687])   
         
   """
-
-  import Record
-  require EEx
-  use Timex
   require Logger
-  import UUID
   use Tesla
 
   @drissly_timeout_tae 60
-  @drissly_timeout_servicios 75
+  @drissly_timeout_servicios_supl 75
   @config Application.get_env(:medusa, :drissly)
 
   @doc """
       Esta funcion construye la solicitud que se le enviara a la API de Drissly                  recibiendo como parametros el tipo de operacion(),y una lista con parametros opc           ionales como el numero de telefono, el tipo de servicio, la cantidad de dinero             en caso de pago, y el numero de referencia en caso de pago
   """
   def make_request(ops, options) do
-    operation_id = UUID.uuid4()
-
     url = get_url(ops)
 
     phone_num = options[:phone]
@@ -112,13 +105,6 @@ defmodule Medusa.DrisslyAdapter do
   end
 
   defp send_request(action, url, phone_number, tos, spa, ad, ref, fol) do
-    # log =
-    #   _body
-    #   |> String.replace(get_user_name(), "*****")
-    #   |> String.replace(get_password(), "*****")
-
-    # log(:info, payment_id, "#{get_time()} Drissly Request: #{log}")
-
     body =
       get_body(
         action,
@@ -132,7 +118,7 @@ defmodule Medusa.DrisslyAdapter do
       |> Jason.encode()
       |> elem(1)
 
-    {:ok, response} =
+    {:ok, _response} =
       Tesla.post(url, body, headers: get_headers(), recv_timeout: get_timeout(action))
   end
 
@@ -191,59 +177,38 @@ defmodule Medusa.DrisslyAdapter do
     end
   end
 
-  defp get_time() do
-    # Timex.format!(Timex.now("America/Mexico_City"), "%Y-%m-%d %H:%M:%S.%L", :strftime)
-    :hello
-  end
-
   defp parse_response(raw_response, action, url) do
     payment_id = UUID.uuid4()
     initial_log(payment_id, action)
-    log_de_operacion = Logger.info("ID de Operacion #{payment_id} Drissly URL: #{url} ") 
+    log_de_operacion = Logger.info("ID de Operacion #{payment_id} Drissly URL: #{url} ")
 
     response = Jaxon.decode(elem(raw_response, 1).body) |> elem(1)
     status_code = get_status_code(response) |> Integer.to_string()
     message = get_message(response)
     error_message = get_error(response)
 
-    IO.inspect(response)
-    
-    data = process_logs(status_code,error_message,message,response)
-    |> Jason.encode! |> persist_logs(payment_id,log_de_operacion)
-    close_log(payment_id)
- 
-    
-    
+    process_logs(status_code, error_message, message, response)
+    |> Jason.encode!()
+    |> persist_logs(payment_id, log_de_operacion, action)
   end
 
   defp process_logs(status_cod, err_messg, messg, resp) do
     cond do
       status_cod == "200" ->
-        msg = resp
+        resp
 
       status_cod == "400" ->
-        msg = Logger.error("Drissly Response: Codigo de error: #{status_cod} , #{messg}")
+        Logger.error("Drissly Response: Codigo de error: #{status_cod} , #{messg}")
 
       Regex.match?(~r/^(40[1|3])/, status_cod) ->
-        msg = Logger.error("Drissly Error: Codigo de error: #{status_cod}, #{resp}")
+        Logger.error("Drissly Error: Codigo de error: #{status_cod}, #{resp}")
 
       Regex.match?(~r/^(50)/, status_cod) ->
-        msg =
-          Logger.error(
-            "Drissly Error: Codigo de error: #{status_cod}, Tipo de error: #{err_messg}"
-          )
+        Logger.error("Drissly Error: Codigo de error: #{status_cod}, Tipo de error: #{err_messg}")
 
       true ->
-        msg = resp
+        resp
     end
-  end
-
-  defp persist_logs(msg,ops_id,request_log) do
-    IO.inspect(ops_id <> msg)
-    
-   IO.binwrite(Application.get_env(:medusa, :"#{ops_id}"), "#{request_log}\n\n #{msg}\n")
- 
-    
   end
 
   defp get_headers() do
@@ -261,7 +226,6 @@ defmodule Medusa.DrisslyAdapter do
     ]
   end
 
-  
   defp get_bearer_token() do
     body =
       %{
@@ -272,27 +236,23 @@ defmodule Medusa.DrisslyAdapter do
       |> elem(1)
 
     url = @config[:endpoints][:base] <> @config[:endpoints][:login]
-    {:ok, response} = Tesla.post(url, body, headers: get_login_headers, recv_timeout: 75_000)
+    {:ok, response} = Tesla.post(url, body, headers: get_login_headers(), recv_timeout: 75_000)
 
-    usr_token =
-      (response.body
-       |> Jason.decode()
-       |> elem(1))["token"]
+    (response.body
+     |> Jason.decode()
+     |> elem(1))["token"]
   end
 
   defp get_status_code(res) do
-    status_code = res["code"]
-  end
-
-  defp parse_status_code(scode) do
+    res["code"]
   end
 
   defp get_message(res) do
-    error_message = res["message"]
+    res["message"]
   end
 
   defp get_error(res) do
-    error_message = res["error"]
+    res["error"]
   end
 
   defp phone_has_10_digits?(number) do
@@ -305,17 +265,27 @@ defmodule Medusa.DrisslyAdapter do
 
   # Para la persistencia de los logs en ficheros
   defp initial_log(payment_id, class) do
-    IO.inspect(@config[:project_root])
-    IO.inspect("#{@config[:project_root]}/lib/logs/#{get_path(class)}/#{payment_id}.log")
+    if class == "recarga" or class == "pago_servicio" do
+      {:ok, file} = File.open("logs/#{get_path(class)}/#{payment_id}.log", [:append])
+      Application.put_env(:medusa, :"#{payment_id}", file, persistent: true)
+    else
+      nil
+    end
+  end
 
-    IO.inspect(get_path(class))
-    {:ok, file} = File.open("logs/#{get_path(class)}/#{payment_id}.log", [:append])
-    Application.put_env(:medusa, :"#{payment_id}", file, persistent: true)
+  defp persist_logs(msg, ops_id, request_log, ops) do
+    if ops == "recarga" or ops == "pago_servicio" do
+      IO.binwrite(Application.get_env(:medusa, :"#{ops_id}"), "#{request_log}\n\n #{msg}\n")
+      
+      close_log(ops_id)
+      Jason.decode(msg) |> elem(1)
+    else
+      Jason.decode(msg) |> elem(1)
+    end
   end
 
   defp close_log(payment_id) do
     File.close(Application.get_env(:medusa, :"#{payment_id}"))
-    
   end
 
   defp get_path(class) do
@@ -335,18 +305,3 @@ defmodule Medusa.DrisslyAdapter do
     end
   end
 end
-
-# Catalogo de productos
-# Medusa.DrisslyAdapter.make_request("catalogo_productos",[])
-
-# Catalogo de Servicios
-# Medusa.DrisslyAdapter.make_request("catalogo_servicios",[])
-
-# Recarga de tae
-# Medusa.DrisslyAdapter.make_request("recarga",[phone: "5512345678", id_product: 78,amount: 100])
-
-# Pago de servicio
-# Medusa.DrisslyAdapter.make_request("pago_servicio",[phone: "5512345678",id_product: 98,amount: 100,aditional: "TEST",reference: 010101010101])
-
-# Consulta transaccion
-# Medusa.DrisslyAdapter.make_request("consulta_transaccion",[folio: 9064])
