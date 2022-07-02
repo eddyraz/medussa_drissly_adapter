@@ -1,16 +1,13 @@
 import Config
 
-config :tesla, adapter: {Tesla.Adapter.Hackney, [recv_timeout: 60_000]}
+config :tesla, :adapter, Tesla.Adapter.Hackney
 
 config :medusa,
   drissly: %{
-    project_root: File.cwd!, 
-
+    project_root: File.cwd!(),
     log_path: %{
       drissly_services: "pago_servicios",
-      drissly_tae: "recarga_tae",
-      
-      
+      drissly_tae: "recarga_tae"
     },
     endpoints: %{
       base: "https://sandbox.drissly.com/api/v1",
@@ -31,9 +28,7 @@ config :medusa,
       login: %{email: "manuel@miio.mx", password: "aK2cahFpVB2WP6r5"},
       auth: %{
         content_type: "application/json",
-        authorization: "Bearer",
-
+        authorization: "Bearer"
       }
     }
   }
-
